@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient-Info-Teller</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="icon" href="/logo.png"/>
+  <meta name="theme-color" content="#1a6fc4"/>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;color:#333;}
+    .page{display:none;padding:40px;max-width:960px;margin:0 auto;}
+    .page.active{display:block;}
+
+    h1{color:#1a6fc4;text-decoration:underline;text-align:center;
+       margin-bottom:40px;font-size:2.2em;letter-spacing:1px;font-weight:700;}
+    h2{color:#1a6fc4;margin-bottom:24px;font-size:1.5em;}
+
+    /* HOME PAGE */
+    .home-wrapper{display:flex;align-items:center;justify-content:center;
+      gap:80px;min-height:70vh;}
+    .home-buttons{display:flex;flex-direction:column;gap:20px;width:320px;}
+    .home-right{display:flex;flex-direction:column;align-items:center;gap:16px;}
+    .home-logo{width:260px;height:260px;object-fit:contain;border-radius:16px;
+      box-shadow:0 4px 20px rgba(26,111,196,0.15);}
+    .tagline{color:#1a6fc4;text-decoration:underline;text-align:center;
+      font-weight:bold;font-size:1.05em;}
+
+    /* BUTTONS */
+    .btn{display:block;width:100%;padding:18px;
+      background:linear-gradient(135deg,#1a6fc4,#2196f3);
+      color:white;border:none;border-radius:10px;font-size:1em;font-weight:700;
+      cursor:pointer;letter-spacing:2px;
+      box-shadow:0 4px 12px rgba(26,111,196,0.3);
+      transition:all 0.2s ease;}
+    .btn:hover{background:linear-gradient(135deg,#155a9e,#1a6fc4);
+      box-shadow:0 6px 16px rgba(26,111,196,0.4);transform:translateY(-2px);}
+    .btn.dark{background:linear-gradient(135deg,#3a3a3a,#555);}
+    .btn.dark:hover{background:linear-gradient(135deg,#222,#3a3a3a);transform:translateY(-2px);}
+    .btn.green{background:linear-gradient(135deg,#27ae60,#2ecc71);}
+    .btn.green:hover{background:linear-gradient(135deg,#1e8449,#27ae60);transform:translateY(-2px);}
+    .btn.small{width:220px;padding:12px;font-size:0.9em;margin:8px auto;display:block;}
+
+    /* FORM */
+    .form-card{background:white;border-radius:14px;padding:30px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:24px;}
+    .form-group{margin-bottom:18px;}
+    .form-group label{display:block;font-weight:600;margin-bottom:7px;color:#444;}
+    .form-group input,.form-group select,.form-group textarea{
+      width:100%;padding:11px 14px;border:1.5px solid #d0d8e4;
+      border-radius:8px;font-size:1em;transition:border 0.2s;background:#fafcff;}
+    .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+      border-color:#1a6fc4;outline:none;}
+    .form-group textarea{height:85px;resize:vertical;}
+    .section-title{font-weight:700;color:#1a6fc4;margin:24px 0 12px;
+      font-size:1.05em;border-left:4px solid #1a6fc4;padding-left:10px;}
+
+    /* INFO BOX */
+    .info-box{background:white;border-radius:14px;padding:28px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:20px;}
+    .info-row{display:flex;margin-bottom:12px;padding-bottom:12px;
+      border-bottom:1px solid #f0f4f8;}
+    .info-row:last-child{border-bottom:none;margin-bottom:0;}
+    .info-label{font-weight:700;width:210px;color:#1a6fc4;}
+    .info-value{flex:1;color:#333;}
+
+    /* STATUS */
+    .status-box{background:#fff;border:2px solid #1a6fc4;border-radius:12px;
+      padding:24px;text-align:center;margin:20px 0;}
+    .status-box.error{border-color:#e74c3c;background:#fdedec;}
+    .spinner{border:4px solid #f3f3f3;border-top:4px solid #1a6fc4;
+      border-radius:50%;width:44px;height:44px;
+      animation:spin 1s linear infinite;margin:10px auto;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    #prescription-group{display:none;}
+
+    /* INSTALL BTN */
+    #install-btn{display:none;position:fixed;bottom:24px;right:24px;
+      background:linear-gradient(135deg,#1a6fc4,#2196f3);color:white;
+      border:none;padding:14px 22px;border-radius:10px;cursor:pointer;
+      font-size:0.95em;font-weight:bold;
+      box-shadow:0 4px 16px rgba(26,111,196,0.4);}
+  </style>
+</head>
+<body>
+
+<button id="install-btn" onclick="installApp()">⬇ Install App</button>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <h1>Patient-Info-Teller</h1>
+  <div class="home-wrapper">
+    <div class="home-buttons">
+      <button class="btn" onclick="showPage('page-create')">CREATE</button>
+      <button class="btn" onclick="startIdentify()">IDENTIFY PATIENT</button>
+      <button class="btn" onclick="startEdit()">EDIT / UPDATE DETAILS</button>
+    </div>
+    <div class="home-right">
+      <img src="/logo.png" class="home-logo" alt="PatientInfoTeller Logo"/>
+      <p class="tagline">Securing Details, Protecting Lives.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE -->
+<div class="page" id="page-create">
+  <h1>Patient-Info-Teller</h1>
+  <h2>Create Patient</h2>
+  <div class="form-card">
+    <div class="form-group"><label>Name</label>
+      <input type="text" id="c-name" placeholder="Full name"/></div>
+    <div class="form-group"><label>Date of Birth (Year only)</label>
+      <input type="number" id="c-dob" placeholder="e.g. 1990" min="1900" max="2026"/></div>
+    <div class="form-group"><label>Age (auto-calculated)</label>
+      <input type="text" id="c-age" readonly style="background:#eee"/></div>
+    <div class="form-group"><label>Blood Group</label>
+      <select id="c-blood">
+        <option value="">-- Select Blood Group --</option>
+        <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+        <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+      </select></div>
+    <div class="form-group"><label>Address</label>
+      <textarea id="c-address" placeholder="Full address"></textarea></div>
+
+    <div class="section-title">Contact Numbers</div>
+    <div class="form-group"><label>Personal Contact</label>
+      <input type="tel" id="c-contact1" placeholder="His/Her contact number"/></div>
+    <div class="form-group"><label>Emergency Contact 1</label>
+      <input type="tel" id="c-emergency1" placeholder="Emergency contact 1"/></div>
+    <div class="form-group"><label>Emergency Contact 2</label>
+      <input type="tel" id="c-emergency2" placeholder="Emergency contact 2"/></div>
+    <div class="form-group"><label>Emergency Contact 3</label>
+      <input type="tel" id="c-emergency3" placeholder="Emergency contact 3"/></div>
+
+    <div class="section-title">Family Doctor (Optional)</div>
+    <div class="form-group"><label>Doctor Name</label>
+      <input type="text" id="c-doc-name" placeholder="Doctor's name"/></div>
+    <div class="form-group"><label>Doctor Contact</label>
+      <input type="tel" id="c-doc-contact" placeholder="Doctor's contact"/></div>
+
+    <div class="form-group"><label>Health Condition</label>
+      <textarea id="c-health" placeholder="Any health condition" oninput="checkPrescription()"></textarea></div>
+    <div class="form-group" id="prescription-group"><label>Prescription</label>
+      <textarea id="c-prescription" placeholder="Prescription details"></textarea></div>
+  </div>
+
+  <div class="status-box" id="fp-status" style="display:none">
+    <div class="spinner"></div>
+    <p>Waiting for mobile to scan fingerprint...</p>
+  </div>
+  <button class="btn green" onclick="requestFingerprintCreate()" style="margin-top:10px">SCAN AND CREATE</button>
+  <button class="btn dark small" onclick="showPage('page-home')" style="margin-top:16px">Back to Home</button>
+</div>
+
+<!-- IDENTIFY -->
+<div class="page" id="page-identify">
+  <h1>Patient-Info-Teller</h1>
+  <h2>Identify Patient</h2>
+  <div class="status-box" id="identify-status">
+    <div class="spinner"></div>
+    <p>Waiting for mobile to scan fingerprint...</p>
+  </div>
+  <div id="identify-result"></div>
+  <button class="btn dark small" id="verify-again-btn" style="display:none" onclick="startIdentify()">Verify Again</button>
+  <button class="btn dark small" onclick="showPage('page-home')" style="margin-top:16px">Back to Home</button>
+</div>
+
+<!-- EDIT -->
+<div class="page" id="page-edit">
+  <h1>Patient-Info-Teller</h1>
+  <h2>Edit / Update Details</h2>
+  <div class="status-box" id="edit-fp-status">
+    <div class="spinner"></div>
+    <p>Waiting for mobile to scan fingerprint...</p>
+  </div>
+  <div id="edit-form" style="display:none">
+    <div class="form-card">
+      <input type="hidden" id="e-id"/>
+      <div class="form-group"><label>Name</label><input type="text" id="e-name"/></div>
+      <div class="form-group"><label>Date of Birth (Year)</label><input type="number" id="e-dob"/></div>
+      <div class="form-group"><label>Age</label><input type="text" id="e-age" readonly style="background:#eee"/></div>
+      <div class="form-group"><label>Blood Group</label>
+        <select id="e-blood">
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select></div>
+      <div class="form-group"><label>Address</label><textarea id="e-address"></textarea></div>
+      <div class="section-title">Contact Numbers</div>
+      <div class="form-group"><label>Personal Contact</label><input type="tel" id="e-contact1"/></div>
+      <div class="form-group"><label>Emergency Contact 1</label><input type="tel" id="e-emergency1"/></div>
+      <div class="form-group"><label>Emergency Contact 2</label><input type="tel" id="e-emergency2"/></div>
+      <div class="form-group"><label>Emergency Contact 3</label><input type="tel" id="e-emergency3"/></div>
+      <div class="section-title">Family Doctor (Optional)</div>
+      <div class="form-group"><label>Doctor Name</label><input type="text" id="e-doc-name"/></div>
+      <div class="form-group"><label>Doctor Contact</label><input type="tel" id="e-doc-contact"/></div>
+      <div class="form-group"><label>Health Condition</label><textarea id="e-health"></textarea></div>
+      <div class="form-group"><label>Prescription</label><textarea id="e-prescription"></textarea></div>
+    </div>
+    <button class="btn green" onclick="saveEdit()">EDITING / UPDATING DATA COMPLETED</button>
+  </div>
+  <button class="btn dark small" onclick="showPage('page-home')" style="margin-top:16px">Back to Home</button>
+</div>
+
+<script>
+  const socket = io();
+
+  // PWA Install
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt',(e)=>{
+    e.preventDefault();
+    deferredPrompt=e;
+    document.getElementById('install-btn').style.display='block';
+  });
+  function installApp(){
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(()=>{
+        deferredPrompt=null;
+        document.getElementById('install-btn').style.display='none';
+      });
+    }
+  }
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+  function showPage(id){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  document.getElementById('c-dob').addEventListener('input',function(){
+    const age=2026-parseInt(this.value);
+    document.getElementById('c-age').value=isNaN(age)?'':age;
+  });
+  document.getElementById('e-dob').addEventListener('input',function(){
+    const age=2026-parseInt(this.value);
+    document.getElementById('e-age').value=isNaN(age)?'':age;
+  });
+
+  function checkPrescription(){
+    const val=document.getElementById('c-health').value.trim();
+    document.getElementById('prescription-group').style.display=val?'block':'none';
+  }
+
+  function requestFingerprintCreate(){
+    document.getElementById('fp-status').style.display='block';
+    socket.emit('request_fingerprint',{action:'create'});
+  }
+
+  function startIdentify(){
+    showPage('page-identify');
+    document.getElementById('identify-result').innerHTML='';
+    document.getElementById('verify-again-btn').style.display='none';
+    document.getElementById('identify-status').style.display='block';
+    socket.emit('request_fingerprint',{action:'identify'});
+  }
+
+  function startEdit(){
+    showPage('page-edit');
+    document.getElementById('edit-form').style.display='none';
+    document.getElementById('edit-fp-status').style.display='block';
+    socket.emit('request_fingerprint',{action:'edit'});
+  }
+
+  socket.on('fingerprint_done',async(data)=>{
+    if(data.action==='create'){
+      document.getElementById('fp-status').style.display='none';
+      if(data.success) await savePatient(data.fingerprintId);
+      else alert('Fingerprint scan failed. Try again.');
+    }
+    if(data.action==='identify'){
+      document.getElementById('identify-status').style.display='none';
+      if(data.success){
+        const res=await fetch(`/api/patients/fingerprint/${data.fingerprintId}`);
+        const result=await res.json();
+        if(result.success) showPatientInfo('identify-result',result.patient);
+        else{
+          document.getElementById('identify-result').innerHTML=
+            '<div class="status-box error"><p>⚠️ Fingerprint not stored</p></div>';
+          document.getElementById('verify-again-btn').style.display='block';
+        }
+      }else{
+        document.getElementById('identify-result').innerHTML=
+          '<div class="status-box error"><p>⚠️ Scan failed. Try again.</p></div>';
+        document.getElementById('verify-again-btn').style.display='block';
+      }
+    }
+    if(data.action==='edit'){
+      document.getElementById('edit-fp-status').style.display='none';
+      if(data.success){
+        const res=await fetch(`/api/patients/fingerprint/${data.fingerprintId}`);
+        const result=await res.json();
+        if(result.success) loadEditForm(result.patient);
+        else{alert('Fingerprint not stored.');showPage('page-home');}
+      }else{alert('Fingerprint scan failed.');showPage('page-home');}
+    }
+  });
+
+  async function savePatient(fingerprintId){
+    const data={
+      name:document.getElementById('c-name').value,
+      dob:document.getElementById('c-dob').value,
+      age:document.getElementById('c-age').value,
+      blood_group:document.getElementById('c-blood').value,
+      address:document.getElementById('c-address').value,
+      contact1:document.getElementById('c-contact1').value,
+      emergency1:document.getElementById('c-emergency1').value,
+      emergency2:document.getElementById('c-emergency2').value,
+      emergency3:document.getElementById('c-emergency3').value,
+      doctor_name:document.getElementById('c-doc-name').value,
+      doctor_contact:document.getElementById('c-doc-contact').value,
+      health_condition:document.getElementById('c-health').value,
+      prescription:document.getElementById('c-prescription').value,
+      fingerprint_id:fingerprintId
+    };
+    const res=await fetch('/api/patients',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const result=await res.json();
+    if(result.success){alert('✅ Patient created successfully!');showPage('page-home');}
+    else alert('Error: '+result.error);
+  }
+
+  function loadEditForm(p){
+    document.getElementById('e-id').value=p.id;
+    document.getElementById('e-name').value=p.name||'';
+    document.getElementById('e-dob').value=p.dob||'';
+    document.getElementById('e-age').value=p.age||'';
+    document.getElementById('e-blood').value=p.blood_group||'';
+    document.getElementById('e-address').value=p.address||'';
+    document.getElementById('e-contact1').value=p.contact1||'';
+    document.getElementById('e-emergency1').value=p.emergency1||'';
+    document.getElementById('e-emergency2').value=p.emergency2||'';
+    document.getElementById('e-emergency3').value=p.emergency3||'';
+    document.getElementById('e-doc-name').value=p.doctor_name||'';
+    document.getElementById('e-doc-contact').value=p.doctor_contact||'';
+    document.getElementById('e-health').value=p.health_condition||'';
+    document.getElementById('e-prescription').value=p.prescription||'';
+    document.getElementById('edit-form').style.display='block';
+  }
+
+  async function saveEdit(){
+    const id=document.getElementById('e-id').value;
+    const data={
+      name:document.getElementById('e-name').value,
+      dob:document.getElementById('e-dob').value,
+      age:document.getElementById('e-age').value,
+      blood_group:document.getElementById('e-blood').value,
+      address:document.getElementById('e-address').value,
+      contact1:document.getElementById('e-contact1').value,
+      emergency1:document.getElementById('e-emergency1').value,
+      emergency2:document.getElementById('e-emergency2').value,
+      emergency3:document.getElementById('e-emergency3').value,
+      doctor_name:document.getElementById('e-doc-name').value,
+      doctor_contact:document.getElementById('e-doc-contact').value,
+      health_condition:document.getElementById('e-health').value,
+      prescription:document.getElementById('e-prescription').value
+    };
+    const res=await fetch(`/api/patients/${id}`,{method:'PUT',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const result=await res.json();
+    if(result.success){alert('✅ Patient updated successfully!');showPage('page-home');}
+    else alert('Error: '+result.error);
+  }
+
+  function showPatientInfo(containerId,p){
+    document.getElementById(containerId).innerHTML=`
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Name</span><span class="info-value">${p.name}</span></div>
+        <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value">${p.dob}</span></div>
+        <div class="info-row"><span class="info-label">Age</span><span class="info-value">${p.age}</span></div>
+        <div class="info-row"><span class="info-label">Blood Group</span><span class="info-value">${p.blood_group}</span></div>
+        <div class="info-row"><span class="info-label">Address</span><span class="info-value">${p.address}</span></div>
+        <div class="info-row"><span class="info-label">Personal Contact</span><span class="info-value">${p.contact1}</span></div>
+        <div class="info-row"><span class="info-label">Emergency Contact 1</span><span class="info-value">${p.emergency1}</span></div>
+        <div class="info-row"><span class="info-label">Emergency Contact 2</span><span class="info-value">${p.emergency2}</span></div>
+        <div class="info-row"><span class="info-label">Emergency Contact 3</span><span class="info-value">${p.emergency3}</span></div>
+        <div class="info-row"><span class="info-label">Doctor Name</span><span class="info-value">${p.doctor_name||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Doctor Contact</span><span class="info-value">${p.doctor_contact||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Health Condition</span><span class="info-value">${p.health_condition||'N/A'}</span></div>
+        ${p.health_condition?`<div class="info-row"><span class="info-label">Prescription</span><span class="info-value">${p.prescription}</span></div>`:''}
+      </div>`;
+  }
+</script>
+</body>
+</html>

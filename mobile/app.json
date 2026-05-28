@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "PatientInfoTeller",
+    "slug": "patientinfoteller",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "com.patientinfoteller.app01",
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
+      "buildToolsVersion": "34.0.0",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
+    "plugins": [
+      "expo-local-authentication"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "bed22573-45d2-4525-ad0d-5efb56840427"
+      }
+    }
+  }
+}
