@@ -4,18 +4,20 @@
   "description": "Securing Details, Protecting Lives.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f0f4f8",
+  "background_color": "#ffffff",
   "theme_color": "#1a6fc4",
   "icons": [
     {
       "src": "/logo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
