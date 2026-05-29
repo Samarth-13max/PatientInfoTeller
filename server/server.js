@@ -1,7 +1,7 @@
 server.jsconst express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
 
