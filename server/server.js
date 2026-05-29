@@ -1,4 +1,4 @@
-server.jsconst express = require('express');
+const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const sqlite3 = require('sqlite3').verbose();
@@ -13,26 +13,30 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const db = new Database('patients.db');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS patients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    dob TEXT,
-    age INTEGER,
-    blood_group TEXT,
-    address TEXT,
-    contact1 TEXT,
-    emergency1 TEXT,
-    emergency2 TEXT,
-    emergency3 TEXT,
-    doctor_name TEXT,
-    doctor_contact TEXT,
-    health_condition TEXT,
-    prescription TEXT,
-    fingerprint_id TEXT UNIQUE
-  )
-`);
+// Database setup
+const db = new sqlite3.Database('./patients.db');
+
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS patients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      dob TEXT,
+      age INTEGER,
+      blood_group TEXT,
+      address TEXT,
+      contact1 TEXT,
+      emergency1 TEXT,
+      emergency2 TEXT,
+      emergency3 TEXT,
+      doctor_name TEXT,
+      doctor_contact TEXT,
+      health_condition TEXT,
+      prescription TEXT,
+      fingerprint_id TEXT UNIQUE
+    )
+  `);
+});
 
 let pendingSession = null;
 
@@ -60,50 +64,62 @@ io.on('connection', (socket) => {
   });
 });
 
+// Create patient
 app.post('/api/patients', (req, res) => {
   const p = req.body;
-  try {
-    const result = db.prepare(`
-      INSERT INTO patients (name, dob, age, blood_group, address, contact1,
-        emergency1, emergency2, emergency3, doctor_name, doctor_contact,
-        health_condition, prescription, fingerprint_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(p.name, p.dob, p.age, p.blood_group, p.address, p.contact1,
-        p.emergency1, p.emergency2, p.emergency3, p.doctor_name,
-        p.doctor_contact, p.health_condition, p.prescription, p.fingerprint_id);
-    res.json({ success: true, id: result.lastInsertRowid });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
-  }
+  const sql = `
+    INSERT INTO patients (name, dob, age, blood_group, address, contact1,
+      emergency1, emergency2, emergency3, doctor_name, doctor_contact,
+      health_condition, prescription, fingerprint_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  db.run(sql, [
+    p.name, p.dob, p.age, p.blood_group, p.address, p.contact1,
+    p.emergency1, p.emergency2, p.emergency3, p.doctor_name,
+    p.doctor_contact, p.health_condition, p.prescription, p.fingerprint_id
+  ], function(err) {
+    if (err) res.json({ success: false, error: err.message });
+    else res.json({ success: true, id: this.lastID });
+  });
 });
 
+// Get all patients
 app.get('/api/patients', (req, res) => {
-  res.json(db.prepare('SELECT * FROM patients').all());
+  db.all('SELECT * FROM patients', [], (err, rows) => {
+    if (err) res.json({ success: false, error: err.message });
+    else res.json(rows);
+  });
 });
 
+// Get patient by fingerprint
 app.get('/api/patients/fingerprint/:fid', (req, res) => {
-  const patient = db.prepare('SELECT * FROM patients WHERE fingerprint_id = ?').get(req.params.fid);
-  if (patient) res.json({ success: true, patient });
-  else res.json({ success: false, message: 'Fingerprint not stored' });
+  db.get('SELECT * FROM patients WHERE fingerprint_id = ?', [req.params.fid], (err, row) => {
+    if (err) res.json({ success: false, error: err.message });
+    else if (row) res.json({ success: true, patient: row });
+    else res.json({ success: false, message: 'Fingerprint not stored' });
+  });
 });
 
+// Update patient
 app.put('/api/patients/:id', (req, res) => {
   const p = req.body;
-  try {
-    db.prepare(`
-      UPDATE patients SET name=?, dob=?, age=?, blood_group=?, address=?,
-        contact1=?, emergency1=?, emergency2=?, emergency3=?,
-        doctor_name=?, doctor_contact=?, health_condition=?, prescription=?
-      WHERE id=?
-    `).run(p.name, p.dob, p.age, p.blood_group, p.address, p.contact1,
-        p.emergency1, p.emergency2, p.emergency3, p.doctor_name,
-        p.doctor_contact, p.health_condition, p.prescription, req.params.id);
-    res.json({ success: true });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
-  }
+  const sql = `
+    UPDATE patients SET name=?, dob=?, age=?, blood_group=?, address=?,
+      contact1=?, emergency1=?, emergency2=?, emergency3=?,
+      doctor_name=?, doctor_contact=?, health_condition=?, prescription=?
+    WHERE id=?
+  `;
+  db.run(sql, [
+    p.name, p.dob, p.age, p.blood_group, p.address, p.contact1,
+    p.emergency1, p.emergency2, p.emergency3, p.doctor_name,
+    p.doctor_contact, p.health_condition, p.prescription, req.params.id
+  ], function(err) {
+    if (err) res.json({ success: false, error: err.message });
+    else res.json({ success: true });
+  });
 });
 
-server.listen(3000, '0.0.0.0', () => {
-  console.log('Server running on port 3000');
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
