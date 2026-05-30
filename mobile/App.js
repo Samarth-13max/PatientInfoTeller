@@ -1,60 +1,97 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator
+  StyleSheet, ActivityIndicator, AppState
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import { io } from 'socket.io-client';
 
-const SERVER_URL = 'http://192.168.108.24:3000';
+const SERVER_URL = 'https://patientinfoteller.onrender.com';
 
 export default function App() {
-  const [socket, setSocket] = useState(null);
   const [status, setStatus] = useState('Connecting...');
   const [waiting, setWaiting] = useState(false);
   const [action, setAction] = useState(null);
   const [connected, setConnected] = useState(false);
+  const wsRef = useRef(null);
+
+  const connect = () => {
+    const ws = new WebSocket(SERVER_URL.replace('https', 'wss').replace('http', 'ws') + '/socket.io/?EIO=4&transport=websocket');
+    
+    ws.onopen = () => {
+      setConnected(true);
+      setStatus('✅ Connected! Waiting for PC...');
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const msg = e.data;
+        if (msg.startsWith('42')) {
+          const data = JSON.parse(msg.substring(2));
+          if (data[0] === 'scan_fingerprint') {
+            setAction(data[1].action);
+            setWaiting(true);
+            setStatus('⚡ PC requesting scan!');
+          }
+        }
+        if (msg === '2') ws.send('3');
+      } catch(err) {}
+    };
+
+    ws.onclose = () => {
+      setConnected(false);
+      setStatus('❌ Disconnected. Reconnecting...');
+      setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+      setConnected(false);
+      setStatus('❌ Connection error. Retrying...');
+    };
+
+    wsRef.current = ws;
+  };
 
   useEffect(() => {
-    const s = io(SERVER_URL, { transports: ['websocket'] });
-    s.on('connect', () => {
-      setConnected(true);
-      setStatus('Connected! Waiting for PC...');
-    });
-    s.on('disconnect', () => {
-      setConnected(false);
-      setStatus('Disconnected. Reconnecting...');
-    });
-    s.on('scan_fingerprint', (data) => {
-      setAction(data.action);
-      setWaiting(true);
-      setStatus('PC requesting fingerprint scan!');
-    });
-    setSocket(s);
-    return () => s.disconnect();
+    connect();
+    return () => {
+      if (wsRef.current) wsRef.current.close();
+    };
   }, []);
+
+  const sendResult = (success, fingerprintId) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const msg = '42' + JSON.stringify(['fingerprint_result', {
+        success,
+        fingerprintId: fingerprintId || null
+      }]);
+      wsRef.current.send(msg);
+    }
+  };
 
   const scanFingerprint = async () => {
     try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        alert('No fingerprint hardware found!');
+        sendResult(false);
+        return;
+      }
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Scan your fingerprint',
         fallbackLabel: 'Try again',
       });
       if (result.success) {
-        const fingerprintId = 'fp_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
-        socket.emit('fingerprint_result', {
-          success: true,
-          fingerprintId: fingerprintId
-        });
+        const fingerprintId = 'fp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        sendResult(true, fingerprintId);
         setWaiting(false);
-        setStatus('✅ Fingerprint sent! Waiting for PC...');
+        setStatus('✅ Fingerprint sent!');
       } else {
-        socket.emit('fingerprint_result', { success: false });
+        sendResult(false);
         setWaiting(false);
         setStatus('❌ Scan failed. Waiting for PC...');
       }
     } catch (err) {
-      socket.emit('fingerprint_result', { success: false });
+      sendResult(false);
       setWaiting(false);
       setStatus('Error: ' + err.message);
     }
@@ -64,12 +101,9 @@ export default function App() {
     <View style={styles.container}>
       <Text style={styles.title}>PatientInfoTeller</Text>
       <Text style={styles.tagline}>Securing Details, Protecting Lives.</Text>
-
-      <View style={[styles.statusBox,
-        connected ? styles.connected : styles.disconnected]}>
+      <View style={[styles.statusBox, connected ? styles.connected : styles.disconnected]}>
         <Text style={styles.statusText}>{status}</Text>
       </View>
-
       {waiting && (
         <View style={styles.scanBox}>
           <ActivityIndicator size="large" color="#1a6fc4"/>

@@ -4,6 +4,7 @@
     "slug": "patientinfoteller",
     "version": "1.0.0",
     "orientation": "portrait",
+    "sdkVersion": "50.0.0",
     "android": {
       "package": "com.patientinfoteller.app01",
       "compileSdkVersion": 34,
