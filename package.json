@@ -2,6 +2,7 @@
   "name": "patientinfoteller",
   "version": "1.0.0",
   "scripts": {
+    "build": "npm rebuild sqlite3 --build-from-source",
     "start": "node server/server.js"
   },
   "dependencies": {
