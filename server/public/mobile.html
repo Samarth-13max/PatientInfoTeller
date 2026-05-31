@@ -86,76 +86,122 @@
   socket.on('scan_fingerprint', (data) => {
     statusBox.className = 'status-box waiting';
     statusText.textContent = '⚡ PC is requesting scan!';
-    document.getElementById('scan-subtitle').textContent = 
-      'Action: ' + data.action;
+    document.getElementById('scan-subtitle').textContent = 'Action: ' + data.action;
     scanBox.style.display = 'block';
     resultBox.style.display = 'none';
   });
 
   async function scanFingerprint() {
     const btn = document.getElementById('scan-btn');
-    btn.textContent = '⏳ Verifying...';
+    btn.textContent = '⏳ Scanning...';
     btn.disabled = true;
 
     try {
-      // Use WebAuthn with platform authenticator (phone fingerprint)
-      const supported = await PublicKeyCredential
+      // Check if biometric is available
+      const available = await PublicKeyCredential
         .isUserVerifyingPlatformAuthenticatorAvailable();
-      
-      if (supported) {
-        // Generate random challenge
-        const challenge = new Uint8Array(32);
-        crypto.getRandomValues(challenge);
-        
-        try {
-          await navigator.credentials.get({
-            publicKey: {
-              challenge: challenge,
-              timeout: 60000,
-              userVerification: 'required',
-              rpId: window.location.hostname
-            }
-          });
-          sendSuccess();
-        } catch(e) {
-          // If no credential registered, still verify user presence
-          // by asking them to use their phone unlock method
-          const confirmed = await showConfirmDialog();
-          if (confirmed) sendSuccess();
-          else sendFailure();
+
+      if (!available) {
+        alert('Fingerprint sensor not available on this device!');
+        btn.textContent = '🔐 VERIFY FINGERPRINT';
+        btn.disabled = false;
+        return;
+      }
+
+      // Create a unique challenge
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      // This triggers the phone's actual fingerprint scanner!
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: {
+            name: 'PatientInfoTeller',
+            id: window.location.hostname
+          },
+          user: {
+            id: new Uint8Array(16),
+            name: 'patient@patientinfoteller',
+            displayName: 'Patient'
+          },
+          pubKeyCredParams: [
+            { alg: -7, type: 'public-key' },
+            { alg: -257, type: 'public-key' }
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required'
+          },
+          timeout: 60000
         }
-      } else {
-        // Fallback - ask user to confirm with phone unlock
-        const confirmed = await showConfirmDialog();
-        if (confirmed) sendSuccess();
-        else sendFailure();
+      });
+
+      if (credential) {
+        // Generate unique fingerprint ID from credential
+        const fingerprintId = 'fp_' + 
+          btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .substring(0, 20) + '_' + Date.now();
+        
+        socket.emit('fingerprint_result', {
+          success: true,
+          fingerprintId: fingerprintId
+        });
+        showResult(true, '✅ Fingerprint verified! Sent to PC.');
       }
     } catch(err) {
-      sendFailure();
+      if (err.name === 'NotAllowedError') {
+        showResult(false, '❌ Fingerprint scan cancelled.');
+        socket.emit('fingerprint_result', { success: false });
+      } else if (err.name === 'InvalidStateError') {
+        // Credential already exists, try to authenticate instead
+        authenticateFingerprint();
+        return;
+      } else {
+        showResult(false, '❌ Error: ' + err.message);
+        socket.emit('fingerprint_result', { success: false });
+      }
     }
+
+    btn.textContent = '🔐 VERIFY FINGERPRINT';
+    btn.disabled = false;
   }
 
-  function showConfirmDialog() {
-    return new Promise((resolve) => {
-      resolve(confirm('Please confirm your identity to proceed with fingerprint verification'));
-    });
-  }
+  async function authenticateFingerprint() {
+    try {
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
 
-  function sendSuccess() {
-    const fingerprintId = 'fp_' + Date.now() + '_' + 
-      Math.random().toString(36).substr(2, 9);
-    socket.emit('fingerprint_result', {
-      success: true,
-      fingerprintId: fingerprintId
-    });
-    showResult(true, '✅ Verified! Data sent to PC.');
-    resetUI();
-  }
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          timeout: 60000,
+          userVerification: 'required',
+          rpId: window.location.hostname
+        }
+      });
 
-  function sendFailure() {
-    socket.emit('fingerprint_result', { success: false });
-    showResult(false, '❌ Verification failed.');
-    resetUI();
+      if (assertion) {
+        const fingerprintId = 'fp_' +
+          btoa(String.fromCharCode(...new Uint8Array(assertion.rawId)))
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .substring(0, 20) + '_verified';
+
+        socket.emit('fingerprint_result', {
+          success: true,
+          fingerprintId: fingerprintId
+        });
+        showResult(true, '✅ Fingerprint verified! Sent to PC.');
+      }
+    } catch(err) {
+      showResult(false, '❌ Scan failed: ' + err.message);
+      socket.emit('fingerprint_result', { success: false });
+    }
+
+    const btn = document.getElementById('scan-btn');
+    btn.textContent = '🔐 VERIFY FINGERPRINT';
+    btn.disabled = false;
   }
 
   function showResult(success, message) {
@@ -165,15 +211,9 @@
     scanBox.style.display = 'none';
     statusBox.className = 'status-box connected';
     statusText.textContent = '✅ Connected! Waiting for PC...';
-    const btn = document.getElementById('scan-btn');
-    btn.textContent = '🔐 VERIFY FINGERPRINT';
-    btn.disabled = false;
     setTimeout(() => resultBox.style.display = 'none', 4000);
   }
-
-  function resetUI() {
-    scanBox.style.display = 'none';
-  }
+</script>
 </script>
 </body>
 </html>
