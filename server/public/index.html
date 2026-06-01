@@ -13,12 +13,9 @@
     body{font-family:'Segoe UI',Arial,sans-serif;background:#eef2f7;color:#333;}
     .page{display:none;padding:40px;max-width:960px;margin:0 auto;}
     .page.active{display:block;}
-
     h1{color:#1a6fc4;text-decoration:underline;text-align:center;
        margin-bottom:40px;font-size:2.2em;letter-spacing:1px;font-weight:700;}
     h2{color:#1a6fc4;margin-bottom:24px;font-size:1.5em;}
-
-    /* HOME PAGE */
     .home-wrapper{display:flex;align-items:center;justify-content:center;
       gap:80px;min-height:70vh;}
     .home-buttons{display:flex;flex-direction:column;gap:20px;width:320px;}
@@ -27,8 +24,6 @@
       box-shadow:0 4px 20px rgba(26,111,196,0.15);}
     .tagline{color:#1a6fc4;text-decoration:underline;text-align:center;
       font-weight:bold;font-size:1.05em;}
-
-    /* BUTTONS */
     .btn{display:block;width:100%;padding:18px;
       background:linear-gradient(135deg,#1a6fc4,#2196f3);
       color:white;border:none;border-radius:10px;font-size:1em;font-weight:700;
@@ -36,14 +31,12 @@
       box-shadow:0 4px 12px rgba(26,111,196,0.3);
       transition:all 0.2s ease;}
     .btn:hover{background:linear-gradient(135deg,#155a9e,#1a6fc4);
-      box-shadow:0 6px 16px rgba(26,111,196,0.4);transform:translateY(-2px);}
+      transform:translateY(-2px);}
     .btn.dark{background:linear-gradient(135deg,#3a3a3a,#555);}
     .btn.dark:hover{background:linear-gradient(135deg,#222,#3a3a3a);transform:translateY(-2px);}
     .btn.green{background:linear-gradient(135deg,#27ae60,#2ecc71);}
     .btn.green:hover{background:linear-gradient(135deg,#1e8449,#27ae60);transform:translateY(-2px);}
     .btn.small{width:220px;padding:12px;font-size:0.9em;margin:8px auto;display:block;}
-
-    /* FORM */
     .form-card{background:white;border-radius:14px;padding:30px;
       box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:24px;}
     .form-group{margin-bottom:18px;}
@@ -52,12 +45,10 @@
       width:100%;padding:11px 14px;border:1.5px solid #d0d8e4;
       border-radius:8px;font-size:1em;transition:border 0.2s;background:#fafcff;}
     .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
-      border-color:#1a6fc4;outline:none;}
+      border-color:#1a6fc4;outline:none;box-shadow:0 0 0 3px rgba(26,111,196,0.1);}
     .form-group textarea{height:85px;resize:vertical;}
     .section-title{font-weight:700;color:#1a6fc4;margin:24px 0 12px;
       font-size:1.05em;border-left:4px solid #1a6fc4;padding-left:10px;}
-
-    /* INFO BOX */
     .info-box{background:white;border-radius:14px;padding:28px;
       box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:20px;}
     .info-row{display:flex;margin-bottom:12px;padding-bottom:12px;
@@ -65,8 +56,6 @@
     .info-row:last-child{border-bottom:none;margin-bottom:0;}
     .info-label{font-weight:700;width:210px;color:#1a6fc4;}
     .info-value{flex:1;color:#333;}
-
-    /* STATUS */
     .status-box{background:#fff;border:2px solid #1a6fc4;border-radius:12px;
       padding:24px;text-align:center;margin:20px 0;}
     .status-box.error{border-color:#e74c3c;background:#fdedec;}
@@ -75,8 +64,6 @@
       animation:spin 1s linear infinite;margin:10px auto;}
     @keyframes spin{to{transform:rotate(360deg);}}
     #prescription-group{display:none;}
-
-    /* INSTALL BTN */
     #install-btn{display:none;position:fixed;bottom:24px;right:24px;
       background:linear-gradient(135deg,#1a6fc4,#2196f3);color:white;
       border:none;padding:14px 22px;border-radius:10px;cursor:pointer;
@@ -123,34 +110,30 @@
       </select></div>
     <div class="form-group"><label>Address</label>
       <textarea id="c-address" placeholder="Full address"></textarea></div>
-
     <div class="section-title">Contact Numbers</div>
     <div class="form-group"><label>Personal Contact</label>
-      <input type="tel" id="c-contact1" placeholder="His/Her contact number"/></div>
+      <input type="tel" id="c-contact1" placeholder="Personal number"/></div>
     <div class="form-group"><label>Emergency Contact 1</label>
       <input type="tel" id="c-emergency1" placeholder="Emergency contact 1"/></div>
     <div class="form-group"><label>Emergency Contact 2</label>
       <input type="tel" id="c-emergency2" placeholder="Emergency contact 2"/></div>
     <div class="form-group"><label>Emergency Contact 3</label>
       <input type="tel" id="c-emergency3" placeholder="Emergency contact 3"/></div>
-
     <div class="section-title">Family Doctor (Optional)</div>
     <div class="form-group"><label>Doctor Name</label>
       <input type="text" id="c-doc-name" placeholder="Doctor's name"/></div>
     <div class="form-group"><label>Doctor Contact</label>
       <input type="tel" id="c-doc-contact" placeholder="Doctor's contact"/></div>
-
     <div class="form-group"><label>Health Condition</label>
       <textarea id="c-health" placeholder="Any health condition" oninput="checkPrescription()"></textarea></div>
     <div class="form-group" id="prescription-group"><label>Prescription</label>
       <textarea id="c-prescription" placeholder="Prescription details"></textarea></div>
   </div>
-
   <div class="status-box" id="fp-status" style="display:none">
     <div class="spinner"></div>
     <p>Waiting for mobile to scan fingerprint...</p>
   </div>
-  <button class="btn green" onclick="requestFingerprintCreate()" style="margin-top:10px">SCAN AND CREATE</button>
+  <button class="btn green" onclick="requestFingerprintCreate()">SCAN AND CREATE</button>
   <button class="btn dark small" onclick="showPage('page-home')" style="margin-top:16px">Back to Home</button>
 </div>
 
@@ -223,6 +206,20 @@
     }
   }
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+
+  // Enter key navigation
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
+      const inputs = Array.from(document.querySelectorAll(
+        'input:not([readonly]), select, textarea'
+      )).filter(el => el.offsetParent !== null);
+      const index = inputs.indexOf(e.target);
+      if (index > -1 && index < inputs.length - 1) {
+        inputs[index + 1].focus();
+      }
+    }
+  });
 
   function showPage(id){
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -360,7 +357,7 @@
     const res=await fetch(`/api/patients/${id}`,{method:'PUT',
       headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
     const result=await res.json();
-    if(result.success){alert('✅ Patient updated successfully!');showPage('page-home');}
+    if(result.success){alert('✅ Patient updated!');showPage('page-home');}
     else alert('Error: '+result.error);
   }
 
