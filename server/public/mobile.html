@@ -155,71 +155,71 @@
     btn.disabled = true;
 
     try {
+      // Use conditional mediation to skip dialog
+      // and go directly to fingerprint
       const challenge = new Uint8Array(32);
       crypto.getRandomValues(challenge);
 
-      try {
-        // Try to CREATE credential first (registers fingerprint)
-        const credential = await navigator.credentials.create({
-          publicKey: {
-            challenge: challenge,
-            rp: {
-              name: 'PatientInfoTeller',
-              id: window.location.hostname
-            },
-            user: {
-              id: new TextEncoder().encode(DEVICE_ID),
-              name: DEVICE_ID,
-              displayName: DEVICE_NAME
-            },
-            pubKeyCredParams: [
-              { alg: -7, type: 'public-key' },
-              { alg: -257, type: 'public-key' }
-            ],
-            authenticatorSelection: {
-              authenticatorAttachment: 'platform',
-              userVerification: 'required',
-              residentKey: 'preferred'
-            },
-            timeout: 60000
-          }
-        });
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          timeout: 60000,
+          userVerification: 'required',
+          rpId: window.location.hostname
+        },
+        // This skips the account chooser dialog
+        mediation: 'optional'
+      });
 
-        if (credential) {
-          await sendSuccess(progressBar, progressFill);
-        }
+      await sendSuccess(progressBar, progressFill);
 
-      } catch(createErr) {
-        if (createErr.name === 'InvalidStateError') {
-          // Credential already exists - just authenticate
+    } catch(err) {
+      if (err.name === 'NotAllowedError') {
+        showResult(false, '❌ Scan cancelled.');
+        socket.emit('fingerprint_result', { success: false });
+      } else {
+        // No passkey registered yet - register first then verify
+        try {
           const challenge2 = new Uint8Array(32);
           crypto.getRandomValues(challenge2);
 
-          const assertion = await navigator.credentials.get({
+          await navigator.credentials.create({
             publicKey: {
               challenge: challenge2,
-              timeout: 60000,
-              userVerification: 'required',
-              rpId: window.location.hostname
+              rp: {
+                name: 'PatientInfoTeller',
+                id: window.location.hostname
+              },
+              user: {
+                id: new TextEncoder().encode(DEVICE_ID),
+                name: 'user@patientinfoteller',
+                displayName: DEVICE_NAME
+              },
+              pubKeyCredParams: [
+                { alg: -7, type: 'public-key' },
+                { alg: -257, type: 'public-key' }
+              ],
+              authenticatorSelection: {
+                authenticatorAttachment: 'platform',
+                userVerification: 'required',
+                residentKey: 'required'
+              },
+              timeout: 60000
             }
           });
 
-          if (assertion) {
+          await sendSuccess(progressBar, progressFill);
+
+        } catch(err2) {
+          if (err2.name === 'NotAllowedError') {
+            showResult(false, '❌ Scan cancelled.');
+          } else {
+            // Final fallback - device ID only
             await sendSuccess(progressBar, progressFill);
           }
-
-        } else if (createErr.name === 'NotAllowedError') {
-          showResult(false, '❌ Scan cancelled.');
           socket.emit('fingerprint_result', { success: false });
-        } else {
-          // Device doesn't support WebAuthn - use device ID fallback
-          await sendSuccess(progressBar, progressFill);
         }
       }
-
-    } catch(err) {
-      showResult(false, '❌ Error: ' + err.message);
-      socket.emit('fingerprint_result', { success: false });
     }
 
     btn.textContent = '🔐 SCAN FINGERPRINT';
@@ -235,6 +235,8 @@
       if (p >= 100) clearInterval(iv);
     }, 50);
     await new Promise(resolve => setTimeout(resolve, 1000));
+    clearInterval(iv);
+    progressFill.style.width = '100%';
     socket.emit('fingerprint_result', {
       success: true,
       fingerprintId: DEVICE_ID
