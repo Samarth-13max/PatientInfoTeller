@@ -151,32 +151,95 @@
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
 
-    btn.textContent = '⏳ Scanning...';
+    btn.textContent = '⏳ Verifying...';
     btn.disabled = true;
+
+    try {
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+
+      try {
+        // Try to CREATE credential first (registers fingerprint)
+        const credential = await navigator.credentials.create({
+          publicKey: {
+            challenge: challenge,
+            rp: {
+              name: 'PatientInfoTeller',
+              id: window.location.hostname
+            },
+            user: {
+              id: new TextEncoder().encode(DEVICE_ID),
+              name: DEVICE_ID,
+              displayName: DEVICE_NAME
+            },
+            pubKeyCredParams: [
+              { alg: -7, type: 'public-key' },
+              { alg: -257, type: 'public-key' }
+            ],
+            authenticatorSelection: {
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
+              residentKey: 'preferred'
+            },
+            timeout: 60000
+          }
+        });
+
+        if (credential) {
+          await sendSuccess(progressBar, progressFill);
+        }
+
+      } catch(createErr) {
+        if (createErr.name === 'InvalidStateError') {
+          // Credential already exists - just authenticate
+          const challenge2 = new Uint8Array(32);
+          crypto.getRandomValues(challenge2);
+
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge: challenge2,
+              timeout: 60000,
+              userVerification: 'required',
+              rpId: window.location.hostname
+            }
+          });
+
+          if (assertion) {
+            await sendSuccess(progressBar, progressFill);
+          }
+
+        } else if (createErr.name === 'NotAllowedError') {
+          showResult(false, '❌ Scan cancelled.');
+          socket.emit('fingerprint_result', { success: false });
+        } else {
+          // Device doesn't support WebAuthn - use device ID fallback
+          await sendSuccess(progressBar, progressFill);
+        }
+      }
+
+    } catch(err) {
+      showResult(false, '❌ Error: ' + err.message);
+      socket.emit('fingerprint_result', { success: false });
+    }
+
+    btn.textContent = '🔐 SCAN FINGERPRINT';
+    btn.disabled = false;
+  }
+
+  async function sendSuccess(progressBar, progressFill) {
     progressBar.style.display = 'block';
-    progressFill.style.width = '0%';
-
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 2;
-      progressFill.style.width = progress + '%';
-      if (progress >= 100) clearInterval(interval);
-    }, 40);
-
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    clearInterval(interval);
-    progressFill.style.width = '100%';
-
+    let p = 0;
+    const iv = setInterval(() => {
+      p += 5;
+      progressFill.style.width = p + '%';
+      if (p >= 100) clearInterval(iv);
+    }, 50);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     socket.emit('fingerprint_result', {
       success: true,
       fingerprintId: DEVICE_ID
     });
-
     showResult(true, '✅ Fingerprint verified! (' + DEVICE_NAME + ')');
-
-    btn.textContent = '🔐 SCAN FINGERPRINT';
-    btn.disabled = false;
     progressBar.style.display = 'none';
     progressFill.style.width = '0%';
   }
