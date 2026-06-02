@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
@@ -16,9 +17,33 @@ app.get('/mobile', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'mobile.html'));
 });
 
-// In-memory storage
-let patients = [];
-let nextId = 1;
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://patientadmin:patient_isadmin@patientinfoteller.ow5rtgj.mongodb.net/?appName=PatientInfoTeller';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('MongoDB connected!'))
+  .catch(err => console.log('MongoDB error:', err));
+
+// Patient schema
+const patientSchema = new mongoose.Schema({
+  name: String,
+  dob: String,
+  age: Number,
+  blood_group: String,
+  address: String,
+  contact1: String,
+  emergency1: String,
+  emergency2: String,
+  emergency3: String,
+  doctor_name: String,
+  doctor_contact: String,
+  health_condition: String,
+  prescription: String,
+  fingerprint_id: { type: String, unique: true }
+});
+
+const Patient = mongoose.model('Patient', patientSchema);
+
 let pendingSession = null;
 
 io.on('connection', (socket) => {
@@ -42,36 +67,50 @@ io.on('connection', (socket) => {
   });
 });
 
-app.post('/api/patients', (req, res) => {
-  const p = req.body;
-  const existing = patients.find(pt => pt.fingerprint_id === p.fingerprint_id);
-  if (existing) {
-    res.json({ success: false, error: 'Fingerprint already stored' });
-    return;
+// Create patient
+app.post('/api/patients', async (req, res) => {
+  try {
+    const existing = await Patient.findOne({ fingerprint_id: req.body.fingerprint_id });
+    if (existing) {
+      res.json({ success: false, error: 'Fingerprint already stored' });
+      return;
+    }
+    const patient = new Patient(req.body);
+    await patient.save();
+    res.json({ success: true, id: patient._id });
+  } catch(err) {
+    res.json({ success: false, error: err.message });
   }
-  const patient = { id: nextId++, ...p };
-  patients.push(patient);
-  res.json({ success: true, id: patient.id });
 });
 
-app.get('/api/patients', (req, res) => {
-  res.json(patients);
+// Get all patients
+app.get('/api/patients', async (req, res) => {
+  try {
+    const patients = await Patient.find();
+    res.json(patients);
+  } catch(err) {
+    res.json([]);
+  }
 });
 
-app.get('/api/patients/fingerprint/:fid', (req, res) => {
-  const patient = patients.find(p => p.fingerprint_id === req.params.fid);
-  if (patient) res.json({ success: true, patient });
-  else res.json({ success: false, message: 'Fingerprint not stored' });
+// Get patient by fingerprint
+app.get('/api/patients/fingerprint/:fid', async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ fingerprint_id: req.params.fid });
+    if (patient) res.json({ success: true, patient });
+    else res.json({ success: false, message: 'Fingerprint not stored' });
+  } catch(err) {
+    res.json({ success: false, message: err.message });
+  }
 });
 
-app.put('/api/patients/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = patients.findIndex(p => p.id === id);
-  if (index !== -1) {
-    patients[index] = { ...patients[index], ...req.body };
+// Update patient
+app.put('/api/patients/:id', async (req, res) => {
+  try {
+    await Patient.findByIdAndUpdate(req.params.id, req.body);
     res.json({ success: true });
-  } else {
-    res.json({ success: false, error: 'Patient not found' });
+  } catch(err) {
+    res.json({ success: false, error: err.message });
   }
 });
 
