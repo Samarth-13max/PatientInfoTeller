@@ -107,7 +107,12 @@ app.get('/api/patients/fingerprint/:fid', async (req, res) => {
 // Update patient
 app.put('/api/patients/:id', async (req, res) => {
   try {
-    await Patient.findByIdAndUpdate(req.params.id, req.body);
+    const id = req.params.id;
+    if (!id || id === 'undefined') {
+      res.json({ success: false, error: 'Invalid patient ID' });
+      return;
+    }
+    await Patient.findByIdAndUpdate(id, req.body, { new: true });
     res.json({ success: true });
   } catch(err) {
     res.json({ success: false, error: err.message });
