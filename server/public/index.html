@@ -49,6 +49,7 @@
     .form-group textarea{height:85px;resize:vertical;}
     .section-title{font-weight:700;color:#1a6fc4;margin:24px 0 12px;
       font-size:1.05em;border-left:4px solid #1a6fc4;padding-left:10px;}
+    .optional{color:#999;font-weight:400;font-size:0.85em;}
     .info-box{background:white;border-radius:14px;padding:28px;
       box-shadow:0 4px 16px rgba(0,0,0,0.08);margin-bottom:20px;}
     .info-row{display:flex;margin-bottom:12px;padding-bottom:12px;
@@ -115,11 +116,11 @@
       <input type="tel" id="c-contact1" placeholder="Personal number"/></div>
     <div class="form-group"><label>Emergency Contact 1</label>
       <input type="tel" id="c-emergency1" placeholder="Emergency contact 1"/></div>
-    <div class="form-group"><label>Emergency Contact 2</label>
-      <input type="tel" id="c-emergency2" placeholder="Emergency contact 2"/></div>
-    <div class="form-group"><label>Emergency Contact 3</label>
-      <input type="tel" id="c-emergency3" placeholder="Emergency contact 3"/></div>
-    <div class="section-title">Family Doctor (Optional)</div>
+    <div class="form-group"><label>Emergency Contact 2 <span class="optional">(Optional)</span></label>
+      <input type="tel" id="c-emergency2" placeholder="Emergency contact 2 (optional)"/></div>
+    <div class="form-group"><label>Emergency Contact 3 <span class="optional">(Optional)</span></label>
+      <input type="tel" id="c-emergency3" placeholder="Emergency contact 3 (optional)"/></div>
+    <div class="section-title">Family Doctor <span class="optional">(Optional)</span></div>
     <div class="form-group"><label>Doctor Name</label>
       <input type="text" id="c-doc-name" placeholder="Doctor's name"/></div>
     <div class="form-group"><label>Doctor Contact</label>
@@ -173,9 +174,9 @@
       <div class="section-title">Contact Numbers</div>
       <div class="form-group"><label>Personal Contact</label><input type="tel" id="e-contact1"/></div>
       <div class="form-group"><label>Emergency Contact 1</label><input type="tel" id="e-emergency1"/></div>
-      <div class="form-group"><label>Emergency Contact 2</label><input type="tel" id="e-emergency2"/></div>
-      <div class="form-group"><label>Emergency Contact 3</label><input type="tel" id="e-emergency3"/></div>
-      <div class="section-title">Family Doctor (Optional)</div>
+      <div class="form-group"><label>Emergency Contact 2 <span class="optional">(Optional)</span></label><input type="tel" id="e-emergency2"/></div>
+      <div class="form-group"><label>Emergency Contact 3 <span class="optional">(Optional)</span></label><input type="tel" id="e-emergency3"/></div>
+      <div class="section-title">Family Doctor <span class="optional">(Optional)</span></div>
       <div class="form-group"><label>Doctor Name</label><input type="text" id="e-doc-name"/></div>
       <div class="form-group"><label>Doctor Contact</label><input type="tel" id="e-doc-contact"/></div>
       <div class="form-group"><label>Health Condition</label><textarea id="e-health"></textarea></div>
@@ -189,7 +190,6 @@
 <script>
   const socket = io();
 
-  // PWA Install
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt',(e)=>{
     e.preventDefault();
@@ -207,7 +207,6 @@
   }
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 
-  // Enter key navigation
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
       e.preventDefault();
@@ -320,7 +319,7 @@
   }
 
   function loadEditForm(p){
-    document.getElementById('e-id').value=p.id;
+    document.getElementById('e-id').value=p._id;
     document.getElementById('e-name').value=p.name||'';
     document.getElementById('e-dob').value=p.dob||'';
     document.getElementById('e-age').value=p.age||'';
@@ -364,19 +363,19 @@
   function showPatientInfo(containerId,p){
     document.getElementById(containerId).innerHTML=`
       <div class="info-box">
-        <div class="info-row"><span class="info-label">Name</span><span class="info-value">${p.name}</span></div>
-        <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value">${p.dob}</span></div>
-        <div class="info-row"><span class="info-label">Age</span><span class="info-value">${p.age}</span></div>
-        <div class="info-row"><span class="info-label">Blood Group</span><span class="info-value">${p.blood_group}</span></div>
-        <div class="info-row"><span class="info-label">Address</span><span class="info-value">${p.address}</span></div>
-        <div class="info-row"><span class="info-label">Personal Contact</span><span class="info-value">${p.contact1}</span></div>
-        <div class="info-row"><span class="info-label">Emergency Contact 1</span><span class="info-value">${p.emergency1}</span></div>
-        <div class="info-row"><span class="info-label">Emergency Contact 2</span><span class="info-value">${p.emergency2}</span></div>
-        <div class="info-row"><span class="info-label">Emergency Contact 3</span><span class="info-value">${p.emergency3}</span></div>
+        <div class="info-row"><span class="info-label">Name</span><span class="info-value">${p.name||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Date of Birth</span><span class="info-value">${p.dob||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Age</span><span class="info-value">${p.age||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Blood Group</span><span class="info-value">${p.blood_group||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Address</span><span class="info-value">${p.address||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Personal Contact</span><span class="info-value">${p.contact1||'N/A'}</span></div>
+        <div class="info-row"><span class="info-label">Emergency Contact 1</span><span class="info-value">${p.emergency1||'N/A'}</span></div>
+        ${p.emergency2?`<div class="info-row"><span class="info-label">Emergency Contact 2</span><span class="info-value">${p.emergency2}</span></div>`:''}
+        ${p.emergency3?`<div class="info-row"><span class="info-label">Emergency Contact 3</span><span class="info-value">${p.emergency3}</span></div>`:''}
         <div class="info-row"><span class="info-label">Doctor Name</span><span class="info-value">${p.doctor_name||'N/A'}</span></div>
         <div class="info-row"><span class="info-label">Doctor Contact</span><span class="info-value">${p.doctor_contact||'N/A'}</span></div>
         <div class="info-row"><span class="info-label">Health Condition</span><span class="info-value">${p.health_condition||'N/A'}</span></div>
-        ${p.health_condition?`<div class="info-row"><span class="info-label">Prescription</span><span class="info-value">${p.prescription}</span></div>`:''}
+        ${p.health_condition?`<div class="info-row"><span class="info-label">Prescription</span><span class="info-value">${p.prescription||'N/A'}</span></div>`:''}
       </div>`;
   }
 </script>
