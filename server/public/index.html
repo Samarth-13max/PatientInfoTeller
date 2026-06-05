@@ -438,6 +438,8 @@
       <div class="form-group"><label>Prescription</label><textarea id="e-prescription"></textarea></div>
     </div>
     <button class="btn green" onclick="saveEdit()">EDITING / UPDATING DATA COMPLETED</button>
+      <button class="btn" style="background:linear-gradient(135deg,#e74c3c,#c0392b);margin-top:12px" onclick="deletePatient()">🗑️ DELETE PATIENT DATA</button>
+
   </div>
   <button class="btn dark small" onclick="showPage('page-home')" style="margin-top:16px">Back to Home</button>
 </div>
@@ -633,6 +635,20 @@
         ${p.health_condition?`<div class="info-row"><span class="info-label">Prescription</span><span class="info-value">${p.prescription||'N/A'}</span></div>`:''}
       </div>`;
   };
+
+  async function deletePatient(){
+    const id=document.getElementById('e-id').value;
+    const name=document.getElementById('e-name').value;
+    if(!confirm(`Are you sure you want to delete ${name}'s data? This cannot be undone!`)) return;
+    const res=await fetch(`/api/patients/${id}`,{method:'DELETE'});
+    const result=await res.json();
+    if(result.success){
+      alert('✅ Patient data deleted successfully! You can now register again.');
+      showPage('page-home');
+    } else {
+      alert('Error: '+result.error);
+    }
+  }
 
 </script>
 </body>

@@ -119,6 +119,20 @@ app.put('/api/patients/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/patients/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id || id === 'undefined') {
+      res.json({ success: false, error: 'Invalid patient ID' });
+      return;
+    }
+    await Patient.findByIdAndDelete(id);
+    res.json({ success: true });
+  } catch(err) {
+    res.json({ success: false, error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
