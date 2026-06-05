@@ -546,9 +546,7 @@
         const res=await fetch(`/api/patients/fingerprint/${data.fingerprintId}`);
         const result=await res.json();
         if(result.success) loadEditForm(result.patient);
-        else{document.getElementById('identify-result').innerHTML=
-          '<div class="status-box error"><p>⚠️ Fingerprint not stored</p></div>';
-      }
+        else{alert('Fingerprint is not registered.');showPage('page-home');}
       }else{alert('Fingerprint scan failed.');showPage('page-home');}
     }
   });
