@@ -6,9 +6,22 @@
   <title>Patient-Info-Teller</title>
   <link rel="manifest" href="/manifest.json"/>
   <link rel="icon" href="/logo.png"/>
+  <link rel="icon" href="/loader.png"/>
   <meta name="theme-color" content="#1a6fc4"/>
   <script src="/socket.io/socket.io.js"></script>
   <style>
+    body{font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif; min-height:100vh; color:white; background: radial-gradient(circle at top left,#ff00aa22,transparent 25%), radial-gradient(circle at bottom right,#00d9ff22,transparent 25%), linear-gradient(135deg,#020617,#07152f,#081b34); background-attachment:fixed;}
+.page.active{display:block;}
+    .page{
+    display:none;
+    padding:30px;
+    max-width:1100px;
+    margin:auto;
+}
+
+.page.active{
+    display:block;
+}
     .home-wrapper>*{
   position:relative;
   z-index:2
@@ -34,16 +47,17 @@
     background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='800'%3E%3Cpath d='M20 0 C120 100,20 200,120 300 S20 500,120 600 S20 700,120 800' fill='none' stroke='%23ff4fa0' stroke-width='2'/%3E%3Cpath d='M40 0 C140 100,40 200,140 300 S40 500,140 600 S40 700,140 800' fill='none' stroke='%23ff4fa0' stroke-width='1.5' opacity='.7'/%3E%3C/svg%3E")
     no-repeat center;
+    z-index:0;
 }
 
 .wave-right{
     background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='800'%3E%3Cpath d='M200 0 C100 100,200 200,100 300 S200 500,100 600 S200 700,100 800' fill='none' stroke='%2300d4ff' stroke-width='2'/%3E%3Cpath d='M180 0 C80 100,180 200,80 300 S180 500,80 600 S180 700,80 800' fill='none' stroke='%2300d4ff' stroke-width='1.5' opacity='.7'/%3E%3C/svg%3E")
     no-repeat center;
+    z-index:0;
 }
     *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; background: radial-gradient(circle at top left,#ff00aa22,transparent 25%), radial-gradient(circle at bottom right,#00d9ff22,transparent 25%), linear-gradient(135deg,#020617,#07152f,#081b34); background-attachment:fixed;}
-    .page.active{display:block;}
+
     h1{
     color:#52ff9c;
     font-size:3rem;
@@ -90,6 +104,8 @@ body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; backgroun
     left:-100px;
     top:50%;
     transform:translateY(-50%);
+    /*width:260px;         To remove the multi semi circles 
+    height:100%;*/
 
   
 
@@ -116,6 +132,8 @@ body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; backgroun
     right:-100px;
     top:50%;
     transform:translateY(-50%);
+    width:260px;
+    height:100%;
 
     
     background:
@@ -135,13 +153,19 @@ body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; backgroun
 }
 
     .home-buttons{display:flex;flex-direction:column;gap:20px;width:320px;}
-    .home-right{display:flex;flex-direction:column;align-items:center;gap:16px;}
-    .home-logo{width:260px;height:260px;object-fit:contain;border-radius:16px;
-      box-shadow:0 4px 20px rgba(26, 111, 196, 0);}
+    .home-right{display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;
+    z-index:5;}
+    .home-logo{width:260px;height:260px;
+      filter:
+        drop-shadow(0 0 8px #ff4fa0)
+        drop-shadow(0 0 15px #00d4ff);
+        object-fit:contain;border-radius:16px;
+      box-shadow:0 4px 20px rgba(26, 111, 196, 0);
+    }
     .tagline{color:#1a6fc4;text-decoration:underline;text-align:center;
       font-weight:bold;font-size:1.05em;}
     .btn{background: linear-gradient( 135deg, #00c6ff, #0072ff ); border:none; color:white; padding:16px 28px; border-radius:16px; font-size:1rem; font-weight:700; cursor:pointer; transition:.3s; box-shadow: 0 0 20px rgba(0,217,255,.35); } .btn:hover{ transform:translateY(-3px); box-shadow: 0 0 30px rgba(0,217,255,.6); }
-    .btn.dark{background:linear-gradient(135deg,#3a3a3a,#555);}
+    .btn.dark{background:linear-gradient(135deg,#77db4c90,#00ff044d);}
     .btn.dark:hover{background:linear-gradient(135deg,#222,#3a3a3a);transform:translateY(-2px);}
     .btn.green{background:linear-gradient(135deg,#27ae60,#2ecc71);}
     .btn.green:hover{background:linear-gradient(135deg,#1e8449,#27ae60);transform:translateY(-2px);}
@@ -279,10 +303,10 @@ body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; backgroun
         opacity:.6;
     }
 }
+.form-card{ position:relative; background: linear-gradient( 135deg, rgba(255,0,170,.08), rgba(0,217,255,.06) ); border-radius:32px; padding:40px; border:2px solid rgba(255,255,255,.12); backdrop-filter:blur(20px); overflow:hidden; box-shadow: 0 0 40px rgba(0,0,0,.45), 0 0 30px rgba(0,217,255,.15); }
 
 /* ===== GLOW BORDER ===== */ .form-card::before{ content:""; position:absolute; inset:0; border-radius:32px; padding:2px; background: linear-gradient( 135deg, #ff00aa, #00d9ff, #0044ff ); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; } 
 /* ===== CORNER GLOW ===== */ .form-card::after{ content:""; position:absolute; width:450px; height:450px; right:-150px; bottom:-150px; border-radius:50%; background: radial-gradient(circle, rgba(0,217,255,.4), transparent 70%); filter:blur(40px); pointer-events:none; }
-.form-card{ position:relative; background: linear-gradient( 135deg, rgba(255,0,170,.08), rgba(0,217,255,.06) ); border-radius:32px; padding:40px; border:2px solid rgba(255,255,255,.12); backdrop-filter:blur(20px); overflow:hidden; box-shadow: 0 0 40px rgba(0,0,0,.45), 0 0 30px rgba(0,217,255,.15); }
 .section-title{ color:#4fdfff; font-size:1.5rem; font-weight:700; margin-top:30px; margin-bottom:20px; border-left:5px solid #00d9ff; padding-left:14px; text-shadow: 0 0 15px rgba(0,217,255,.4); }
 
 
@@ -298,6 +322,7 @@ body{font-family:'Segoe UI',sans-serif; min-height:100vh; color:white; backgroun
   <div class="home-wrapper">
     <div class="wave-left"></div>
     <div class="wave-right"></div>
+    
 
     <div class="home-buttons">
       <button class="btn" onclick="showPage('page-create')">CREATE</button>
