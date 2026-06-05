@@ -548,7 +548,7 @@
         if(result.success) loadEditForm(result.patient);
         else{document.getElementById('identify-result').innerHTML=
           '<div class="status-box error"><p>⚠️ Fingerprint not stored</p></div>';
-          showPage('page-home');}
+      }
       }else{alert('Fingerprint scan failed.');showPage('page-home');}
     }
   });
